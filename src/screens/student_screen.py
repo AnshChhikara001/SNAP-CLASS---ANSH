@@ -69,7 +69,7 @@ def student_dashboard():
         def unenroll_button():
                 if st.button(
                     "Unenroll from this course",
-                    key=f"unenroll_{sid}",
+                    key=f"unenroll_{student_id}_{sid}_{i}",
                     type="tertiary",
                     width="stretch",
                     icon=":material/delete_forever:"

@@ -14,9 +14,17 @@ def voice_attendance_dialog(selected_subject_id):
         "Record audio of students saying 'I am present'. Then AI will recognize the students."
     )
 
-    audio_data = st.audio_input("Record classroom audio")
-
-    if st.button("Analyze Audio", width="stretch", type="primary"):
+    audio_data = st.audio_input(
+        "Record classroom audio",
+        key=f"voice_audio_{selected_subject_id}"
+    )
+    if st.button(
+        "Analyze Audio",
+        key=f"analyze_audio_{selected_subject_id}",
+        width="stretch",
+        type="primary",
+    ):
+    
         with st.spinner("Processing audio data..."):
 
             enrolled_res = (
