@@ -21,25 +21,34 @@ def get_voice_embedding(audio_bytes):
         st.error('Voice recog error')
         return None
 
-def identify_speaker(new_embedding,candidates_dict,threshold=0.65):
+
+
+def identify_speaker(new_embedding, candidates_dict, threshold=0.40):
     if new_embedding is None or not candidates_dict:
-        return None,0.0
+        return None, 0.0
 
     best_sid = None
     best_score = -1.0
 
-    for sid,stored_embeddings in candidates_dict.items():
-        if stored_embeddings:
-            stored_embedding = np.mean(stored_embeddings, axis=0)
-            similarity = np.dot(new_embedding,stored_embedding)
-            if similarity > best_score:
-                best_score = similarity
-                best_sid = sid
-            
-    if best_score >= threshold:
-        return best_sid,best_score
+    for sid, stored_embedding in candidates_dict.items():
+        stored_embedding = np.asarray(stored_embedding, dtype=np.float32)
+        new_embedding = np.asarray(new_embedding, dtype=np.float32)
 
-    return None,best_score
+        similarity = np.dot(new_embedding, stored_embedding)
+
+        print(f"Student {sid}: {similarity:.4f}")
+
+        if similarity > best_score:
+            best_score = similarity
+            best_sid = sid
+
+    print(f"Best match: {best_sid}, Score: {best_score:.4f}")
+
+    if best_score >= threshold:
+        return best_sid, best_score
+
+    return None, best_score
+
 
 def process_bulk_audio(audio_bytes,candidates_dict,threshold=0.65):
     try:
@@ -56,16 +65,18 @@ def process_bulk_audio(audio_bytes,candidates_dict,threshold=0.65):
             wav = preprocess_wav(segment_audio)
             embedding = encoder.embed_utterance(wav)
 
-            sid,score = identify_speaker(embedding,candidates_dict,threshold)
+            sid, score = identify_speaker(embedding, candidates_dict, threshold)
 
             if sid:
-                if sid not in identified_results or score > identified_results[sid]:
-                    identified_results[sid] = score 
+                identified_results[sid] = {
+                    "confidence": round(float(score), 4)
+                }
 
         return identified_results
     except Exception as e:
-        st.error('Bulk process error')
-        return{}
+        print("VOICE ERROR:", repr(e))
+        st.exception(e)
+        raise
 
 
 

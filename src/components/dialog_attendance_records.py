@@ -13,25 +13,34 @@ def show_attendance_result(df, logs):
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button('Discard', width='stretch'):
+        if st.button(
+            "Discard",
+            key="attendance_discard_btn",
+            width="stretch",
+        ):
             st.session_state.voice_attendance_results = None
+            st.session_state.pop("face_attendance_results", None)
             st.session_state.attendance_images = []
             st.rerun()
 
     with col2:
-        if st.button('Confirm & Save', width='stretch', type='primary'):
+        if st.button(
+            "Confirm & Save",
+            key="attendance_confirm_btn",
+            width="stretch",
+            type="primary",
+        ):
             try:
-                create_attendance(logs)
+                response = create_attendance(logs)
                 st.toast("Attendance taken")
                 st.session_state.attendance_images = []
                 st.session_state.voice_attendance_results = None
+                st.session_state.pop("face_attendance_results", None)
                 st.rerun()
             except Exception as e:
                 st.exception(e)
 
-
-
-@st.dialog("Attendance Reports")
 def attendance_result_dialog(df, logs):
+    st.subheader("Attendance Reports")
     show_attendance_result(df, logs)
 

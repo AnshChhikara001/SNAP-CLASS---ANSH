@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-from src.pipelines.voice_pipeline import process_bulk_audio
+import src.pipelines.voice_pipeline as vp
 from src.database.config import supabase
 
 from src.components.dialog_attendance_records import attendance_result_dialog
@@ -48,7 +48,13 @@ def voice_attendance_dialog(selected_subject_id):
 
             audio_bytes = audio_data.read()
 
-            detected_scores = process_bulk_audio(audio_bytes, candidates_dict)
+            print("Audio bytes type:", type(audio_bytes))
+            print("Audio bytes length:", len(audio_bytes))
+            print("Candidates:", candidates_dict)
+
+            print("VOICE PIPELINE FILE:", vp.__file__)
+            detected_scores = vp.process_bulk_audio(audio_bytes, candidates_dict)
+            print("Detected scores:", detected_scores)
 
             results = []
             attendance_to_log = []
@@ -58,18 +64,31 @@ def voice_attendance_dialog(selected_subject_id):
             for node in enrolled_students:
                 student = node["students"]
 
-                score = detected_scores.get(student["student_id"], 0.0)
-                is_present = score > 0
+                print("Detected:", detected_scores)
+                print("Student ID:", student["student_id"], type(student["student_id"]))
+
+                if detected_scores:
+                    print("Keys:", list(detected_scores.keys()))
+                    print("Key type:", type(next(iter(detected_scores.keys()))))
+                else:
+                    print("No speakers detected")
+                student_result = detected_scores.get(student["student_id"])
+
+                if student_result:
+                    score = student_result["confidence"]
+                    is_present = True
+                else:
+                    score = 0.0
+                    is_present = False
 
                 results.append(
                     {
                         "Name": student["name"],
                         "ID": student["student_id"],
-                        "Source": round(score, 3) if is_present else "-",
+                        "Confidence": f"{score:.2%}" if is_present else "-",
                         "Status": "✅ Present" if is_present else "❌ Absent",
                     }
                 )
-
                 attendance_to_log.append(
                     {
                         "student_id": student["student_id"],
@@ -85,8 +104,5 @@ def voice_attendance_dialog(selected_subject_id):
             )
 
     if st.session_state.get("voice_attendance_results"):
-        st.divider()
-
-        df_results, logs = st.session_state.voice_attendance_results
-
-        attendance_result_dialog(df_results, logs)
+        st.success("Audio processed successfully.")
+        st.info("Close this dialog to view the attendance results.")

@@ -165,11 +165,29 @@ def teacher_tab_take_attendance():
                             'is_present': bool(is_present)
                         })
 
-                    attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
+                st.write("attendance_to_log =", attendance_to_log)
 
+                st.session_state.face_attendance_results = (
+                    pd.DataFrame(results),
+                    attendance_to_log,
+                )
+                st.rerun()
     with c3:
-        if st.button('Use Voice Attendance', type='primary', width='stretch', icon=':material/mic:'):
+        if st.button(
+            'Use Voice Attendance',
+            type='primary',
+            width='stretch',
+            icon=':material/mic:'
+        ):
             voice_attendance_dialog(selected_subject_id)
+
+    if st.session_state.get("voice_attendance_results"):
+        df_results, logs = st.session_state.pop("voice_attendance_results")
+        attendance_result_dialog(df_results, logs)
+
+    if st.session_state.get("face_attendance_results"):
+        df_results, logs = st.session_state["face_attendance_results"]
+        attendance_result_dialog(df_results, logs)
 
 def teacher_tab_manage_subjects():
     teacher_id = st.session_state.teacher_data['teacher_id']
