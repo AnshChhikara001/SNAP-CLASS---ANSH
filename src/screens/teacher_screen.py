@@ -25,6 +25,13 @@ import pandas as pd
 from datetime import datetime
 
 
+
+from src.database.db import (
+    get_teacher_subjects,
+    get_subject_attendance
+)
+
+
 from src.database.db import (
     check_teacher_exists,
     create_teacher,
@@ -158,7 +165,7 @@ def teacher_tab_take_attendance():
                             'is_present': bool(is_present)
                         })
 
-                attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
+                    attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
 
     with c3:
         if st.button('Use Voice Attendance', type='primary', width='stretch', icon=':material/mic:'):
@@ -199,9 +206,80 @@ def teacher_tab_manage_subjects():
         st.info("NO SUBJECTS FOUND, CREATE ONE ABOVE")
 
 
-
 def teacher_tab_attendance_records():
-    st.header('Attendance Records')
+    st.header("📋 Attendance Records")
+
+    teacher_id = st.session_state.teacher_data["teacher_id"]
+
+    subjects = get_teacher_subjects(teacher_id)
+
+    if not subjects:
+        st.info("No subjects found.")
+        return
+
+    subject_map = {
+        f"{s['name']} ({s['subject_code']})": s["subject_id"]
+        for s in subjects
+    }
+
+    selected = st.selectbox(
+        "Select Subject",
+        list(subject_map.keys()),
+        width="stretch"
+    )
+
+    subject_id = subject_map[selected]
+
+    attendance = get_subject_attendance(subject_id)
+
+    if not attendance:
+        st.warning("No attendance records found.")
+        return
+
+    rows = []
+
+    for record in attendance:
+
+        student = record.get("students", {})
+
+        rows.append({
+            "Student Name": student.get("name", "-"),
+            "Student ID": student.get("student_id", "-"),
+            "Status": "✅ Present" if record["is_present"] else "❌ Absent",
+            "Date": record["timestamp"][:10],
+            "Time": record["timestamp"][11:19],
+        })
+
+    df = pd.DataFrame(rows)
+
+    st.dataframe(
+        df,
+        hide_index=True,
+        use_container_width=True
+    )
+
+    csv = df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        "⬇ Download CSV",
+        csv,
+        "attendance.csv",
+        "text/csv"
+    )
+
+    total = len(df)
+    present = len(df[df["Status"] == "✅ Present"])
+
+    st.divider()
+
+    c1, c2, c3 = st.columns(3)
+
+    c1.metric("Total Records", total)
+    c2.metric("Present", present)
+    c3.metric(
+        "Attendance %",
+        f"{(present/total)*100:.1f}%"
+    )
 
 def teacher_dashboard():
     teacher_data = st.session_state.teacher_data
